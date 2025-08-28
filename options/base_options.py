@@ -86,7 +86,12 @@ class BaseOptions():
             print('%s: %s' % (str(k), str(v)))
         print('-------------- End ----------------')
 
-        # save to the disk        
+        # save to the disk
+        import socket
+        if self.opt.isTrain:
+            from datetime import datetime
+            current_time = datetime.now().strftime("%b%d_%H-%M-%S")     
+            self.opt.name+='_'+current_time
         expr_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name)
         util.mkdirs(expr_dir)
         if save and not self.opt.continue_train:

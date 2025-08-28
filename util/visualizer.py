@@ -4,7 +4,9 @@ import ntpath
 import time
 from . import util
 from . import html
-import scipy.misc
+import base64
+from PIL import Image
+# import scipy.misc
 try:
     from StringIO import StringIO  # Python 2.7
 except ImportError:
@@ -19,9 +21,11 @@ class Visualizer():
         self.name = opt.name
         if self.tf_log:
             import tensorflow as tf
+            tf.compat.v1.disable_eager_execution()
             self.tf = tf
             self.log_dir = os.path.join(opt.checkpoints_dir, opt.name, 'logs')
-            self.writer = tf.summary.FileWriter(self.log_dir)
+            # self.writer = tf.summary.create_file_writer(self.log_dir)
+            self.writer = tf.compat.v1.summary.FileWriter(self.log_dir)
 
         if self.use_html:
             self.web_dir = os.path.join(opt.checkpoints_dir, opt.name, 'web')
@@ -43,25 +47,39 @@ class Visualizer():
                     s = StringIO()
                 except:
                     s = BytesIO()
-                scipy.misc.toimage(image_numpy).save(s, format="jpeg")
+                # scipy.misc.toimage(image_numpy).save(s, format="tiff")
+                # dataout=Image.fromarray(image_numpy)
+                # dataout.save(s)
                 # Create an Image object
-                img_sum = self.tf.Summary.Image(encoded_image_string=s.getvalue(), height=image_numpy.shape[0], width=image_numpy.shape[1])
+                img_sum = self.tf.compat.v1.Summary.Image(encoded_image_string=base64.b64encode(image_numpy.tobytes()), height=image_numpy.shape[0], width=image_numpy.shape[1])
+                # img_sum = self.tf.summary.image(encoded_image_string=s.getvalue(), height=image_numpy.shape[0], width=image_numpy.shape[1])
                 # Create a Summary value
-                img_summaries.append(self.tf.Summary.Value(tag=label, image=img_sum))
+                img_summaries.append(self.tf.compat.v1.Summary.Value(tag=label, image=img_sum))
+                # img_summaries.append(self.tf.summary.scalar(tag=label, image=img_sum))
 
             # Create and write Summary
-            summary = self.tf.Summary(value=img_summaries)
+            summary = self.tf.compat.v1.Summary(value=img_summaries)
+            # summary = self.tf.summary(value=img_summaries)
             self.writer.add_summary(summary, step)
 
         if self.use_html: # save images to a html file
+            imgs_all=[]
             for label, image_numpy in visuals.items():
                 if isinstance(image_numpy, list):
                     for i in range(len(image_numpy)):
-                        img_path = os.path.join(self.img_dir, 'epoch%.3d_%s_%d.jpg' % (epoch, label, i))
+                        img_path = os.path.join(self.img_dir, 'Epoch%.3d_%s_%d.jpg' % (epoch, label, i))
+
                         util.save_image(image_numpy[i], img_path)
                 else:
                     img_path = os.path.join(self.img_dir, 'epoch%.3d_%s.jpg' % (epoch, label))
                     util.save_image(image_numpy, img_path)
+                    # image_numpy.shape()
+                    # np.concatenate((imgs_all, Image.fromarray(image_numpy).convert("RGB")), axis=0)
+
+            # img_path = os.path.join(self.img_dir, 'epoch%.3d_%s.jpg' % (epoch, "ALL"))
+            # util.save_image(imgs_all, img_path)
+        
+      
 
             # update website
             webpage = html.HTML(self.web_dir, 'Experiment name = %s' % self.name, refresh=30)
@@ -95,7 +113,8 @@ class Visualizer():
     def plot_current_errors(self, errors, step):
         if self.tf_log:
             for tag, value in errors.items():
-                summary = self.tf.Summary(value=[self.tf.Summary.Value(tag=tag, simple_value=value)])
+                summary = self.tf.compat.v1.Summary(value=[self.tf.compat.v1.Summary.Value(tag=tag, simple_value=value)])
+                # summary = self.tf.summary.scalar(tag=tag,simple_value=value)
                 self.writer.add_summary(summary, step)
 
     # errors: same format as |errors| of plotCurrentErrors
@@ -119,13 +138,14 @@ class Visualizer():
         ims = []
         txts = []
         links = []
-
+        imgs_all=[]
         for label, image_numpy in visuals.items():
             image_name = '%s_%s.jpg' % (name, label)
             save_path = os.path.join(image_dir, image_name)
             util.save_image(image_numpy, save_path)
-
+            print('save to ['+save_path+']')
             ims.append(image_name)
             txts.append(label)
             links.append(image_name)
+
         webpage.add_images(ims, txts, links, width=self.win_size)
