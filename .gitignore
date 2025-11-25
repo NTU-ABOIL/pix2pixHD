@@ -1,8 +1,14 @@
 debug*
 checkpoints/
+checkpoints_saved/
+imgs/
+datasets/
 results/
 build/
 dist/
+Train*/
+*_out.txt
+
 torch.egg-info/
 */**/__pycache__
 torch/version.py

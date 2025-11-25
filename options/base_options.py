@@ -43,7 +43,7 @@ class BaseOptions():
 
         # for generator
         self.parser.add_argument('--netG', type=str, default='global', help='selects model to use for netG')
-        self.parser.add_argument('--ngf', type=int, default=64, help='# of gen filters in first conv layer')
+        self.parser.add_argument('--ngf', type=int, default=32, help='# of gen filters in first conv layer')
         self.parser.add_argument('--n_downsample_global', type=int, default=4, help='number of downsampling layers in netG') 
         self.parser.add_argument('--n_blocks_global', type=int, default=9, help='number of residual blocks in the global generator network')
         self.parser.add_argument('--n_blocks_local', type=int, default=3, help='number of residual blocks in the local enhancer network')
@@ -86,7 +86,12 @@ class BaseOptions():
             print('%s: %s' % (str(k), str(v)))
         print('-------------- End ----------------')
 
-        # save to the disk        
+        # save to the disk
+        import socket
+        if self.opt.isTrain:
+            from datetime import datetime
+            current_time = datetime.now().strftime("%b%d_%H-%M-%S")     
+            self.opt.name+='_'+current_time
         expr_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name)
         util.mkdirs(expr_dir)
         if save and not self.opt.continue_train:
